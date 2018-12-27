@@ -19,8 +19,6 @@ struct TestStruct
 // Maximum allowed registered callbacks
 #define MAX_REGISTER  3
 
-ALLOC_DEFINE(TestAlloc, 1, 5);
-
 // Create a TestCb asynchronous callback that takes an integer pointer argument
 CB_DECLARE(TestCb, int*)
 CB_DEFINE(TestCb, int*, sizeof(int), MAX_REGISTER)
