@@ -2,9 +2,10 @@
 //
 // The callback module implements synchronous or asynchronous function callbacks.
 // A publisher exposes a callback interface using CB_DECLARE and CB_DEFINE macros. 
-// A subscriber(s) register to receive callbacks at runtime using CB_Register().
+// A subscriber registers to receive callbacks at runtime using CB_Register().
 //
-// All callback functions must return void and have one pointer function argument. 
+// All callback functions must return void, have one pointer function argument
+// and one user data void* argument. e.g. void MyCallback(MyData* arg, void* userData)
 // Synchronous callbacks are invoked on the current executing task. Asynchronous
 // callbacks are dispatched to the target OS task to be invoked. Callback data 
 // is bitwise copied for transport through a message queue. Dynamic storage is
@@ -31,6 +32,12 @@
 //
 // Subscriber example:
 // 
+// // Callback function
+// void TestCallback(int* data, void* userData)
+// {
+//    printf("My data: %d", *arg);
+// }
+//
 // // Register to receive synchronous callbacks on TestCallback() function
 // CB_Register(TestCb, TestCallback, NULL, NULL);
 //
@@ -67,7 +74,7 @@ typedef struct
     void* cbUserData;
 } CB_CallbackMsg;
 
-// Each task dispatch function must conform to this signature 
+// Each OS task dispatch function must conform to this signature 
 typedef BOOL (*CB_DispatchCallbackFuncType)(const CB_CallbackMsg* cbMsg);
 
 typedef struct

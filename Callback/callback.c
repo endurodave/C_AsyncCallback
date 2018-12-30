@@ -151,7 +151,7 @@ BOOL _CB_AddCallback(CB_Info* cbInfo,
         // Empty registration slot?
         if (cbInfo[idx].cbFunc == NULL)
         {
-            // Save callback function pointer
+            // Save callback information into cbInfo array
             cbInfo[idx].cbFunc = cbFunc;
             cbInfo[idx].cbDispatchFunc = cbDispatchFunc;
             cbInfo[idx].cbUserData = cbUserData;
@@ -190,7 +190,7 @@ BOOL _CB_RemoveCallback(CB_Info* cbInfo,
         if (cbInfo[idx].cbFunc == cbFunc &&
             cbInfo[idx].cbDispatchFunc == cbDispatchFunc)
         {
-            // Remove callback function pointer
+            // Remove callback function pointer from cbInfo array
             cbInfo[idx].cbFunc = NULL;
             cbInfo[idx].cbDispatchFunc = NULL;
             cbInfo[idx].cbUserData = NULL;

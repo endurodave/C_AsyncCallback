@@ -5,17 +5,19 @@ Originally published on CodeProject at: <a href="https://www.codeproject.com/Art
 
 <h2>Introduction</h2>
 
-<p>Callbacks are a powerful concept used to reduce the coupling between two pieces of code. On a multithreaded system, callbacks have limitations. What I&#39;ve always wanted was a callback mechanism that crosses threads and handles all the low-level machinery to get my event data from one thread to another safely. A portable and easy to use framework. No more monster switch statements inside a thread loop that typecast OS message queue void* values based upon an enumeration. Create a callback. Register a callback. And the framework automagically invokes the callback with data arguments on a user specified target thread is the goal.&nbsp;</p>
+<p>Callbacks are a powerful concept used to reduce the coupling between two pieces of code. On a multithreaded system, callbacks have limitations. What I&#39;ve always wanted was a callback mechanism that crosses threads and handles all the low-level machinery to get my event data from one thread to another safely. A portable and easy to use framework. No more monster switch statements inside a thread loop that typecast OS message queue <code>void*</code> values based upon an enumeration. Create a callback. Register a callback. And the framework automagically invokes the callback with data arguments on a user specified target thread is the goal.&nbsp;</p>
 
-<p>I&rsquo;ve documented different C++ solutions to asynchronous multicast callbacks on two previous CodeProject articles. One version supports a single callback argument. The other employs a multi-argument C++ delegate paradigm at the expense of increased complexity (see the <strong>References </strong>section below for C++ articles).&nbsp;</p>
+<p>On systems that use event loops, a message queue and switch statement are sometimes employed to hande&nbsp;incoming messages. Over time, the event loop function grows larger and larger as more message types are dispatched to the thread. Weird hacks are added in order to solve various system issues. Ultimately what ensues is a fragile, hard to read function that is constantly touched by engineers over the life of the project. This solution attempts to simplify and standardize the event loop in order to generalize the movement of data between threads.&nbsp;</p>
+
+<p>I&rsquo;ve documented C++ solutions to asynchronous multicast callbacks on two previous CodeProject articles. One version supports a single callback argument. The other employs a multi-argument C++ delegate paradigm&nbsp;(see the <strong>References </strong>section below for C++ articles).&nbsp;</p>
 
 <p>This third time around the solution is implemented in C. The callback solution presented here provides the following features:</p>
 
 <ul>
 	<li><strong>Asynchronous callbacks</strong> &ndash; support asynchronous callbacks to and from any thread</li>
 	<li><strong>Thread targeting</strong> &ndash; specify the destination thread for the asynchronous callback</li>
-	<li><strong>Callbacks </strong>&ndash; invoke any C or C++ free function with a matching signature</li>
-	<li><strong>Type safe</strong> &ndash; user defined, type safe callback function data arguments</li>
+	<li><strong>Callbacks </strong>&ndash; invoke any C or C++ free/static function with a matching signature</li>
+	<li><strong>Type safe</strong> &ndash; user defined, type safe callback function data argument</li>
 	<li><strong>Multicast callbacks</strong> &ndash; store multiple callbacks within an array for sequential invocation</li>
 	<li><strong>Thread-safe</strong> &ndash; suitable for use on a multi-threaded system</li>
 	<li><strong>Compact </strong>&ndash; small, easy to maintain code base consuming minimal code space</li>
@@ -25,7 +27,7 @@ Originally published on CodeProject at: <a href="https://www.codeproject.com/Art
 	<li><strong>Elegant syntax</strong> &ndash; intuitive and easy to use</li>
 </ul>
 
-<p>The asynchronous callback paradigm significantly eases multithreaded application development by placing the callback and callback data onto the thread of control that you specify. Exposing a&nbsp;callback interface for a single module or an entire subsystem is extremely easy. The framework is no more difficult to use than a standard C callback but with more features.</p>
+<p>The asynchronous callback paradigm significantly eases multithreaded application development by placing the callback function pointer and callback data onto the thread of control that you specify. Exposing a&nbsp;callback interface for a single module or an entire subsystem is extremely easy. The framework is no more difficult to use than a standard C callback but with more features.</p>
 
 <p>This article proposes an inter-thread communication mechanism utilizing asynchronous multicast callbacks. The attached source code implements all features above, as I&#39;ll demonstrate.</p>
 
@@ -53,7 +55,7 @@ CB_DECLARE(TestCb, int*)</pre>
 <pre lang="c++">
 CB_DEFINE(TestCb, int*, sizeof(int), MAX_REGISTER)</pre>
 
-<p>To subscribe to callback, create a free function (<code>static </code>class member or global) as shown. I&rsquo;ll explain why the function signature argument requires a <code>(int*, void*)</code> function signature shortly.</p>
+<p>To subscribe to callback, create a function (<code>static </code>class member or global) as shown. I&rsquo;ll explain why the function signature argument requires a <code>(int*, void*)</code> function signature shortly.</p>
 
 <pre lang="c++">
 void TestCallback1(int* val, void* userData)
@@ -66,7 +68,7 @@ void TestCallback1(int* val, void* userData)
 <pre lang="c++">
 CB_Register(TestCb, TestCallback1, DispatchCallbackThread1, NULL);</pre>
 
-<p>On C/C++ mixed projects, the <code>userData </code>callback argument can be used to store a <code>this </code>class instance pointer. Pass a class <code>static </code>function pointer for the callback function and a <code>this </code>pointer for user data to <code>CB_Register()</code>. Within the callback function, typecast <code>userData </code>back to a class instance pointer. This provides an easy means of accessing class instance functions and data within a <code>static </code>callback function. &nbsp;</p>
+<p>On C/C++ mixed projects, the <code>userData </code>callback argument can be used to store a <code>this </code>class instance pointer. Pass a class <code>static </code>member function pointer for the callback function and a <code>this </code>pointer for user data to <code>CB_Register()</code>. Within the subscriber callback function, typecast <code>userData </code>back to a class instance pointer. This provides an easy means of accessing class instance functions and data within a <code>static </code>callback function. &nbsp;</p>
 
 <p>Use <code>CB_Invoke()</code> when a publisher needs to invoke the callback for all registered subscribers. The function dispatches the callback and data argument onto the destination thread of control. In the example below, <code>TestCallback1() </code>is called on <code>DispatchCallbackThread1</code>.&nbsp;</p>
 
@@ -74,7 +76,7 @@ CB_Register(TestCb, TestCallback1, DispatchCallbackThread1, NULL);</pre>
 int data = 123;
 CB_Invoke(TestCb, &amp;data);</pre>
 
-<p>Use <code>CB_Unregister()</code> to unsubscribe a callback.</p>
+<p>Use <code>CB_Unregister()</code> to unsubscribe from a callback.</p>
 
 <pre lang="c++">
 CB_Unregister(TestCb, TestCallback1, DispatchCallbackThread1);</pre>
@@ -108,7 +110,7 @@ void SD_Term(void);
 void SD_SetSystemMode(SystemModeType systemMode);
 </pre>
 
-<p>The subscriber callback interface is <code>SystemModeChangedCb</code>. Calling <code>SD_SetSystemMode()</code> saves the new mode into <code>_systemMode </code>and notifies all registered subscribers.</p>
+<p>The publisher callback interface is <code>SystemModeChangedCb</code>. Calling <code>SD_SetSystemMode()</code> saves the new mode into <code>_systemMode </code>and notifies all registered subscribers.</p>
 
 <pre lang="c++">
 void SD_SetSystemMode(SystemModeType systemMode)
@@ -132,7 +134,7 @@ void SD_SetSystemMode(SystemModeType systemMode)
 
 <h2>SysData Subscriber Example</h2>
 
-<p>A callback function that conforms to the callback function signature is created by the client.&nbsp;</p>
+<p>The subscriber creates a&nbsp;callback function that conforms to the publisher&#39;s callback function signature.&nbsp;</p>
 
 <pre lang="c++">
 void SysDataCallback(const SystemModeData* data, void* userData)
@@ -180,7 +182,7 @@ void SDNL_Init(void)
 }
 </pre>
 
-<p>The <code>SSNL_SetSystemMode()</code> function below is an example of an asynchronous <em>incoming </em>interface. To the caller, it looks like a normal function, but under the hood, a private function call is invoked asynchronously. In this case, invoking <code>SetSystemModeCb </code>causes <code>SDNL_SetSystemModePrivate()</code> to be called on <code>DispatchCallbackThread1</code>.</p>
+<p>The <code>SSNL_SetSystemMode()</code> function below is an example of an asynchronous <em>incoming </em>interface. To the caller, it looks like a normal function, but, under the hood,&nbsp;a private function call is invoked asynchronously. In this case, invoking <code>SetSystemModeCb </code>causes <code>SDNL_SetSystemModePrivate()</code> to be called on <code>DispatchCallbackThread1</code>.</p>
 
 <pre lang="c++">
 void SDNL_SetSystemMode(SystemModeType systemMode)
@@ -245,7 +247,7 @@ void MyCallback(const MyData* data, void* userData);</pre>
 
 <p>The number of lines of code for the callback framework is surprisingly low. Strip out the comments, and maybe a couple hundred lines of code that are (hopefully) easy to understand and maintain.</p>
 
-<p>The implementation uses macros and token pasting to provide a type-safe interface. The token pasting operator (<code>##</code>) is used to merge two tokens when the preprocessor expands the macro. The <code>CB_DECLARE </code>macro is shown below.</p>
+<p>The implementation uses macros and token pasting to provide a unique type-safe interface for each callback. The token pasting operator (<code>##</code>) is used to merge two tokens when the preprocessor expands the macro. The <code>CB_DECLARE </code>macro is shown below.</p>
 
 <pre lang="c++">
 #define CB_DECLARE(cbName, cbArg) \
@@ -288,6 +290,7 @@ BOOL SystemModeChangedCb_Invoke(const SystemModeData* cbData)
 { 
     return _CB_Dispatch(&amp;SystemModeChangedCbMulticast[0], 2, cbData, sizeof(SystemModeData)); 
 }
+
 BOOL _CB_Dispatch(CB_Info* cbInfo, size_t cbInfoLen, const void* cbData, 
     size_t cbDataSize)
 {
@@ -331,14 +334,14 @@ void CB_TargetInvoke(const CB_CallbackMsg* cbMsg)
 } 
 </pre>
 
-<p>Asynchronous callbacks impose certain limitations because everything the callback destination thread needs must be created on the heap, packaged into a <code>CB_CallbackMsg </code>structure, and placed into an OS message queue.</p>
+<p>Asynchronous callbacks impose certain limitations because everything the callback destination thread must be created on the heap, packaged into a <code>CB_CallbackMsg </code>structure, and placed into an OS message queue.</p>
 
 <p>The insertion into an OS queue is platform specific. The <code>CB_DispatchCallbackFuncType </code>function pointer <code>typedef</code> provides the OS queue interface to be implemented for each thread event loop on the target platform. See the <strong>Porting</strong> section below for a more complete discussion.</p>
 
 <pre lang="c++">
 typedef BOOL (*CB_DispatchCallbackFuncType)(const CB_CallbackMsg* cbMsg);</pre>
 
-<p>Once the message is placed into the message queue, platform specific code unpacks the message and calls the <code>CB_TargetInvoke()</code> function and destroys dynamically allocated data. For this example, a simple <code>WorkerThreadStd </code>class provides the thread event loop using the C++ thread support library. While this example uses C++ threads, the callback modules are written in plain C. Abstracting the OS details from the callback implementation makes this possible.&nbsp;</p>
+<p>Once the message is placed into the message queue, platform specific code unpacks the message and calls the <code>CB_TargetInvoke()</code> function and destroys dynamically allocated data. For this example, a simple <code>WorkerThreadStd </code>class provides the thread event loop leveraging&nbsp;the C++ thread support library. While this example uses C++ threads, the callback modules are written in plain C. Abstracting the OS details from the callback implementation makes this possible.&nbsp;</p>
 
 <pre lang="c++">
 void WorkerThread::Process()
@@ -410,6 +413,7 @@ extern &quot;C&quot; BOOL DispatchCallbackThread1(const CB_CallbackMsg* cbMsg)
     workerThread1.DispatchCallback(cbMsg);
     return TRUE;
 }
+
 void WorkerThread::DispatchCallback(const CB_CallbackMsg* msg)
 {
     ASSERT_TRUE(m_thread);
@@ -444,6 +448,58 @@ case MSG_DISPATCH_DELEGATE:
 </pre>
 
 <p>Software locks are handled by the <code>LockGuard </code>module. This file can be updated with locks of your choice, or you can use a different mechanism. Locks are only used in a few places. Define <code>USE_LOCKS</code> within <strong>callback.c</strong> to use <code>LockGuard </code>module locks.&nbsp;</p>
+
+<h2>Which Callback Implementation?</h2>
+
+<p>I&rsquo;ve documented three different asynchronous multicast callback implementations here on CodeProject. Each version has its own unique features and advantages. The sections below highlight the main differences between each solution. See the <strong>References </strong>section below for links to each article.&nbsp;</p>
+
+<h3>Asynchronous Multicast Callbacks in C</h3>
+
+<ul>
+	<li>Implemented in C</li>
+	<li>Callback function free or static member only</li>
+	<li>One callback argument supported</li>
+	<li>Callback argument must be a pointer type</li>
+	<li>Callback argument data copied with <code>memcpy</code></li>
+	<li>Type-safety provided by macros</li>
+	<li>Static array holds registered subscriber callbacks</li>
+	<li>Number of registered subscribers fixed at compile time</li>
+	<li>Fixed block memory allocator in C</li>
+	<li>Compact implementation</li>
+</ul>
+
+<h3>Asynchronous Multicast Callbacks with Inter-Thread Messaging</h3>
+
+<ul>
+	<li>Implemented in C++</li>
+	<li>Callback function free or static member only</li>
+	<li>One callback argument supported</li>
+	<li>Callback argument must be a pointer type</li>
+	<li>Callback argument data copied with copy constructor</li>
+	<li>Type-safety provided by templates</li>
+	<li>Minimal use of templates</li>
+	<li>Dynamic list of registered subscriber&nbsp;callbacks</li>
+	<li>Number of registered subscribers expands at runtime</li>
+	<li>Fixed block memory allocator in C++</li>
+	<li>Compact implementation</li>
+</ul>
+
+<h3>Asynchronous Multicast Delegates in C++</h3>
+
+<ul>
+	<li>Implemented in C++</li>
+	<li>C++ delegate paradigm</li>
+	<li>Any callback function type (member, static, free)</li>
+	<li>Multiple callback arguments supported (up to 5)</li>
+	<li>Callback argument any type (value, reference, pointer, pointer to pointer)</li>
+	<li>Callback argument&nbsp;data copied with copy constructor</li>
+	<li>Type-safety provided by templates</li>
+	<li>Heavy use of templates</li>
+	<li>Dynamic list of registered subscriber&nbsp;callbacks</li>
+	<li>Number of registered subscribers&nbsp;expands at runtime</li>
+	<li>Fixed block memory allocator in C++</li>
+	<li>Larger implementation&nbsp;</li>
+</ul>
 
 <h2>References</h2>
 

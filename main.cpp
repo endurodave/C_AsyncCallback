@@ -1,5 +1,3 @@
-// cbData to cbArg in some locations in header. Both in macros and in code. 
-
 #include "stdafx.h"
 #include "callback.h"
 #include "WorkerThreadStd.h"
