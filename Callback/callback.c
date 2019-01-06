@@ -24,6 +24,7 @@
     #define XALLOC(size)    CBALLOC_Alloc(size)
     #define XFREE(ptr)      CBALLOC_Free(ptr)
 #else
+    #include <stdlib.h>
     #define XALLOC(size)    malloc(size)
     #define XFREE(ptr)      free(ptr)
 #endif
