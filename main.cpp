@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "callback.h"
 #include "WorkerThreadStd.h"
 #include "SysData.h"
@@ -6,6 +5,10 @@
 #include "fb_allocator.h"
 #include <iostream>
 #include <string.h>
+
+// main.cpp
+// @see https://github.com/endurodave/C_AsyncCallback
+// David Lafreniere, Aug 2020.
 
 using namespace std;
 
