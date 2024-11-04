@@ -1,11 +1,38 @@
 # Asynchronous Multicast Callbacks in C
 Simplify passing data between threads with this portable C language callback library.
 
+# Table of Contents
+
+- [Asynchronous Multicast Callbacks in C](#asynchronous-multicast-callbacks-in-c)
+- [Table of Contents](#table-of-contents)
+- [Preface](#preface)
+  - [Library Comparison](#library-comparison)
+- [Introduction](#introduction)
+- [Callbacks Background](#callbacks-background)
+- [Using the Code](#using-the-code)
+- [SysData Publisher Example](#sysdata-publisher-example)
+- [Examples](#examples)
+  - [SysData Subscriber Example](#sysdata-subscriber-example)
+  - [SysDataNoLock Publisher Example](#sysdatanolock-publisher-example)
+- [Callback Signature Limitations](#callback-signature-limitations)
+- [Implementation](#implementation)
+- [Heap](#heap)
+- [Porting](#porting)
+- [Which Callback Implementation?](#which-callback-implementation)
+  - [Asynchronous Multicast Callbacks in C](#asynchronous-multicast-callbacks-in-c-1)
+  - [Asynchronous Multicast Callbacks with Inter-Thread Messaging](#asynchronous-multicast-callbacks-with-inter-thread-messaging)
+  - [Asynchronous Multicast Delegates in C++](#asynchronous-multicast-delegates-in-c)
+- [References](#references)
+- [Conclusion](#conclusion)
+
+
+# Preface
+
 Originally published on CodeProject at: <a href="https://www.codeproject.com/Articles/1272894/Asynchronous-Multicast-Callbacks-in-C"><strong>Asynchronous Multicast Callbacks in C</strong></a>
 
 <p><a href="https://www.cmake.org/">CMake</a>&nbsp;is used to create the build files. CMake is free and open-source software. Windows, Linux and other toolchains are supported. See the <strong>CMakeLists.txt </strong>file for more information.</p>
 
-<h2>Preface</h2>
+## Library Comparison
 
 <p>Asynchronous function invocation allows for easy movement of data between threads. The table below summarizes the various asynchronous function invocation implementations available in C and C++.</p>
 
@@ -18,7 +45,7 @@ Originally published on CodeProject at: <a href="https://www.codeproject.com/Art
 | <a href="https://github.com/endurodave/AsyncCallback">AsyncCallback</a>                               | C++      | * Traditional template syntax<br> * Delegate target function type (static, free)<br> * 1 target function argument<br> * N delegate subscribers                                                                                      | * Low lines of source code<br> * Most compact C++ implementation<br> * Any C++ compiler                                                                                                                    |
 | <a href="https://github.com/endurodave/C_AsyncCallback">C_AsyncCallback</a>                           | C        | * Macros provide type-safety<br> * Delegate target function type (static, free)<br> * 1 target function argument<br> * Fixed delegate subscribers (set at compile time)<br> * Optional fixed block allocator                        | * Low lines of source code<br> * Very compact implementation<br> * Any C compiler                                                                                                                          |
 
-<h2>Introduction</h2>
+# Introduction
 
 <p>Callbacks are a powerful concept used to reduce the coupling between two pieces of code. On a multithreaded system, callbacks have limitations. What I&#39;ve always wanted was a callback mechanism that crosses threads and handles all the low-level machinery to get my event data from one thread to another safely. A portable and easy to use framework. No more monster switch statements inside a thread loop that typecast OS message queue <code>void*</code> values based upon an enumeration. Create a callback. Register a callback. And the framework automagically invokes the callback with data arguments on a user specified target thread is the goal.&nbsp;</p>
 
@@ -46,7 +73,7 @@ Originally published on CodeProject at: <a href="https://www.codeproject.com/Art
 
 <p>This article proposes an inter-thread communication mechanism utilizing asynchronous multicast callbacks. The attached source code implements all features above, as I&#39;ll demonstrate.</p>
 
-<h2>Callbacks Background</h2>
+# Callbacks Background
 
 <p>The idea of a function callback is very useful. In callback terms, a publisher defines the callback signature and allows anonymous registration of a callback function pointer. A subscriber creates a function implementation conforming to the publisher&#39;s callback signature and registers a callback function pointer with the publisher at runtime. The publisher code knows nothing about the subscriber code &ndash; the registration and the callback invocation is anonymous.</p>
 
@@ -56,7 +83,7 @@ Originally published on CodeProject at: <a href="https://www.codeproject.com/Art
 
 <p>One solution for making a callback function thread-safe is to post a message to the subscriber&#39;s OS queue during the publisher&#39;s callback. The subscriber&#39;s thread later dequeues the message and calls an appropriate function. Since the callback implementation only posts a message, the callback, even if done asynchronously, is thread-safe. In this case, the asynchrony of a message queue provides the thread safety in lieu of software locks.</p>
 
-<h2>Using the Code</h2>
+# Using the Code
 
 <p>I&#39;ll first present how to use the code, and then get into the implementation details.</p>
 
@@ -98,7 +125,7 @@ CB_Unregister(TestCb, TestCallback1, DispatchCallbackThread1);</pre>
 
 <p>Asynchronous callbacks are easily used to add asynchrony to both incoming and outgoing API interfaces. The following examples show how.</p>
 
-<h2>SysData Publisher Example</h2>
+# SysData Publisher Example
 
 <p><code>SysData </code>is a simple module showing how to expose an <em>outgoing </em>asynchronous interface. The module stores system data and provides asynchronous subscriber notifications when the mode changes. The module interface is shown below.</p>
 
@@ -147,7 +174,9 @@ void SD_SetSystemMode(SystemModeType systemMode)
 }
 </pre>
 
-<h2>SysData Subscriber Example</h2>
+# Examples
+
+## SysData Subscriber Example
 
 <p>The subscriber creates a&nbsp;callback function that conforms to the publisher&#39;s callback function signature.&nbsp;</p>
 
@@ -170,7 +199,7 @@ SD_SetSystemMode(STARTING);
 SD_SetSystemMode(NORMAL);
 </pre>
 
-<h2>SysDataNoLock Publisher Example</h2>
+## SysDataNoLock Publisher Example
 
 <p><code>SysDataNoLock </code>is an alternate implementation that uses a private callback for setting the system mode asynchronously and without locks.</p>
 
@@ -226,7 +255,7 @@ static void SDNL_SetSystemModePrivate(SystemModeType* systemMode, void* userData
 }
 </pre>
 
-<h2>Callback Signature Limitations</h2>
+# Callback Signature Limitations
 
 <p>This design has the following limitations imposed on all callback functions:</p>
 
@@ -258,7 +287,7 @@ void MyCallback(const MyData* data, void* userData);</pre>
 
 <p>In this design, the entire infrastructure happens automatically without any additional effort on the programmer&#39;s part. If multiple data parameters are required, they must be packaged into a single class/struct and used as the callback data argument.</p>
 
-<h2>Implementation</h2>
+# Implementation
 
 <p>The number of lines of code for the callback framework is surprisingly low. Strip out the comments, and maybe a couple hundred lines of code that are (hopefully) easy to understand and maintain.</p>
 
@@ -402,13 +431,13 @@ void WorkerThread::Process()
 
 <p>This is a huge benefit as on many systems getting data between threads takes a lot of manual steps. You constantly have to mess with each thread loop, create during sending, destroy data when receiving, and call various OS services and typecasts. Here you do none of that. All the stuff in-between is neatly handled for users.</p>
 
-<h2>Heap</h2>
+# Heap
 
 <p>The dynamic data is required to send data structures through the message queue. Remember, the data pointed to by your callback argument is bitwise copied during a callback.&nbsp;</p>
 
 <p>On some systems, it is undesirable to use the heap. For those situations, I use a fixed block memory allocator. The <code>x_allocator</code> implementation solves the dynamic storage issues and is much faster than the global heap. To use, just define <code>USE_CALLBACK_ALLOCATOR </code>within <strong>callback.c</strong>. See the <strong>References </strong>section for more information on <code>x_allocator</code>.</p>
 
-<h2>Porting</h2>
+# Porting
 
 <p>The code is an easy port to any platform. There are only two OS services required: threads and a software lock. The code is separated into four directories.</p>
 
@@ -464,11 +493,11 @@ case MSG_DISPATCH_DELEGATE:
 
 <p>Software locks are handled by the <code>LockGuard </code>module. This file can be updated with locks of your choice, or you can use a different mechanism. Locks are only used in a few places. Define <code>USE_LOCKS</code> within <strong>callback.c</strong> to use <code>LockGuard </code>module locks.&nbsp;</p>
 
-<h2>Which Callback Implementation?</h2>
+# Which Callback Implementation?
 
 <p>I&rsquo;ve documented three different asynchronous multicast callback implementations here on CodeProject. Each version has its own unique features and advantages. The sections below highlight the main differences between each solution. See the <strong>References </strong>section below for links to each article.&nbsp;</p>
 
-<h3>Asynchronous Multicast Callbacks in C</h3>
+## Asynchronous Multicast Callbacks in C
 
 <ul>
 	<li>Implemented in C</li>
@@ -483,7 +512,7 @@ case MSG_DISPATCH_DELEGATE:
 	<li>Compact implementation</li>
 </ul>
 
-<h3>Asynchronous Multicast Callbacks with Inter-Thread Messaging</h3>
+## Asynchronous Multicast Callbacks with Inter-Thread Messaging
 
 <ul>
 	<li>Implemented in C++</li>
@@ -499,7 +528,7 @@ case MSG_DISPATCH_DELEGATE:
 	<li>Compact implementation</li>
 </ul>
 
-<h3>Asynchronous Multicast Delegates in C++</h3>
+## Asynchronous Multicast Delegates in C++
 
 <ul>
 	<li>Implemented in C++</li>
@@ -516,7 +545,7 @@ case MSG_DISPATCH_DELEGATE:
 	<li>Larger implementation&nbsp;</li>
 </ul>
 
-<h2>References</h2>
+# References
 
 <ul>
 	<li><a href="https://www.codeproject.com/Articles/1272619/A-Fixed-Block-Memory-Allocator-in-C">A Fixed Block Memory Allocator in C</a> - by David Lafreniere</li>
@@ -524,7 +553,7 @@ case MSG_DISPATCH_DELEGATE:
 	<li><a href="https://www.codeproject.com/Articles/1092727/Asynchronous-Multicast-Callbacks-with-Inter-Thread">Asynchronous Multicast Callbacks with Inter-Thread Messaging</a> - by David Lafreniere</li>
 </ul>
 
-<h2>Conclusion</h2>
+# Conclusion
 
 <p>There are many ways to design a publisher/subscriber callback system. This C language version incorporates unique features and eases generating&nbsp;asynchronous callbacks onto a client specified thread of control. The implementation was kept to a minimum to facilitate porting to any system embedded or otherwise.&nbsp;</p>
 
