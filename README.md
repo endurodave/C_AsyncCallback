@@ -12,7 +12,6 @@ Simplify passing data between threads with this portable C language callback lib
 - [Asynchronous Multicast Callbacks in C](#asynchronous-multicast-callbacks-in-c)
 - [Table of Contents](#table-of-contents)
 - [Preface](#preface)
-  - [Library Comparison](#library-comparison)
 - [Introduction](#introduction)
 - [Callbacks Background](#callbacks-background)
 - [Using the Code](#using-the-code)
@@ -24,42 +23,23 @@ Simplify passing data between threads with this portable C language callback lib
 - [Implementation](#implementation)
 - [Heap](#heap)
 - [Porting](#porting)
-- [Which Callback Implementation?](#which-callback-implementation)
-  - [Asynchronous Multicast Callbacks in C](#asynchronous-multicast-callbacks-in-c-1)
-  - [Asynchronous Multicast Callbacks with Inter-Thread Messaging](#asynchronous-multicast-callbacks-with-inter-thread-messaging)
-  - [Asynchronous Multicast Delegates in C++](#asynchronous-multicast-delegates-in-c)
+- [Asynchronous Library Comparison](#asynchronous-library-comparison)
 - [References](#references)
-- [Conclusion](#conclusion)
 
 
 # Preface
 
-Originally published on CodeProject at: <a href="https://www.codeproject.com/Articles/1272894/Asynchronous-Multicast-Callbacks-in-C"><strong>Asynchronous Multicast Callbacks in C</strong></a>
+Originally published on CodeProject at <a href="https://www.codeproject.com/Articles/1272894/Asynchronous-Multicast-Callbacks-in-C">Asynchronous Multicast Callbacks in C</a> with a perfect 5.0 feedback rating.
 
 <p><a href="https://www.cmake.org/">CMake</a>&nbsp;is used to create the build files. CMake is free and open-source software. Windows, Linux and other toolchains are supported. See the <strong>CMakeLists.txt </strong>file for more information.</p>
-
-## Library Comparison
-
-<p>Asynchronous function invocation allows for easy movement of data between threads. The table below summarizes the various asynchronous function invocation implementations available in C and C++.</p>
-
-| Repository                                                                                            | Language | Key Delegate Features                                                                                                                                                                                                               | Notes                                                                                                                                                                                                      |
-|-------------------------------------------------------------------------------------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| <a href="https://github.com/endurodave/AsyncMulticastDelegateModern">AsyncMulticastDelegateModern</a> | C++17    | * Function-like template syntax<br> * Any delegate target function type (member, static, free, lambda)<br>  * N target function arguments<br> * N delegate subscribers<br> * Variadic templates<br> * Template metaprogramming      | * Most generic implementation<br> * Lowest lines of source code<br> * Slowest of all implementations<br> * No fixed block allocator support<br> * No remote delegate support<br> * Complex metaprogramming |
-| <a href="https://github.com/endurodave/AsyncMulticastDelegateCpp17">AsyncMulticastDelegateCpp17</a>   | C++17    | * Function-like template syntax<br> * Any delegate target function type (member, static, free, lambda)<br> * 5 target function arguments<br> * N delegate subscribers<br> * Optional fixed block allocator<br> * Variadic templates | * Selective compile using constexpr<br> * Avoids complex metaprogramming<br> * Faster than AsyncMulticastDelegateModern<br> * No remote delegate support                                                   |
-| <a href="https://github.com/endurodave/AsyncMulticastDelegateCpp11">AsyncMulticastDelegateCpp11</a>   | C++11    | * Function-like template syntax<br> * Any delegate target function type (member, static, free, lambda)<br> * 5 target function arguments<br> * N delegate subscribers<br> * Optional fixed block allocator                          | * High lines of source code<br> * Highly repetitive source code                                                                                                                                            |
-| <a href="https://github.com/endurodave/AsyncMulticastDelegate">AsyncMulticastDelegate</a>             | C++03    | * Traditional template syntax<br> * Any delegate target function type (member, static, free)<br> * 5 target function arguments<br> * N delegate subscribers<br> * Optional fixed block allocator                                    | * High lines of source code<br> * Highly repetitive source code                                                                                                                                            |
-| <a href="https://github.com/endurodave/AsyncCallback">AsyncCallback</a>                               | C++      | * Traditional template syntax<br> * Delegate target function type (static, free)<br> * 1 target function argument<br> * N delegate subscribers                                                                                      | * Low lines of source code<br> * Most compact C++ implementation<br> * Any C++ compiler                                                                                                                    |
-| <a href="https://github.com/endurodave/C_AsyncCallback">C_AsyncCallback</a>                           | C        | * Macros provide type-safety<br> * Delegate target function type (static, free)<br> * 1 target function argument<br> * Fixed delegate subscribers (set at compile time)<br> * Optional fixed block allocator                        | * Low lines of source code<br> * Very compact implementation<br> * Any C compiler                                                                                                                          |
 
 # Introduction
 
 <p>Callbacks are a powerful concept used to reduce the coupling between two pieces of code. On a multithreaded system, callbacks have limitations. What I&#39;ve always wanted was a callback mechanism that crosses threads and handles all the low-level machinery to get my event data from one thread to another safely. A portable and easy to use framework. No more monster switch statements inside a thread loop that typecast OS message queue <code>void*</code> values based upon an enumeration. Create a callback. Register a callback. And the framework automagically invokes the callback with data arguments on a user specified target thread is the goal.&nbsp;</p>
 
-<p>On systems that use event loops, a message queue and switch statement are sometimes employed to hande&nbsp;incoming messages. Over time, the event loop function grows larger and larger as more message types are dispatched to the thread. Weird hacks are added in order to solve various system issues. Ultimately what ensues is a fragile, hard to read function that is constantly touched by engineers over the life of the project. This solution attempts to simplify and standardize the event loop in order to generalize the movement of data between threads.&nbsp;</p>
+<p>On systems that use event loops, a message queue and switch statement are sometimes employed to hande&nbsp;incoming messages. Over time, the event loop function grows larger and larger as more message types are dispatched to the thread. Weird hacks are added in order to solve various system issues. Ultimately what ensues is a fragile, hard to read function that is constantly touched by engineers over the life of the project. This solution simplifies and standardizes the event loop in order to generalize the movement of data between threads.&nbsp;</p>
 
-<p>I&rsquo;ve documented C++ solutions to asynchronous multicast callbacks on two previous CodeProject articles. One version supports a single callback argument. The other employs a multi-argument C++ delegate paradigm&nbsp;(see the <strong>References </strong>section below for C++ articles).&nbsp;</p>
-
-<p>This third time around the solution is implemented in C. The callback solution presented here provides the following features:</p>
+<p>The C language callback solution presented here provides the following features:</p>
 
 <ul>
 	<li><strong>Asynchronous callbacks</strong> &ndash; support asynchronous callbacks to and from any thread</li>
@@ -77,8 +57,6 @@ Originally published on CodeProject at: <a href="https://www.codeproject.com/Art
 
 <p>The asynchronous callback paradigm significantly eases multithreaded application development by placing the callback function pointer and callback data onto the thread of control that you specify. Exposing a&nbsp;callback interface for a single module or an entire subsystem is extremely easy. The framework is no more difficult to use than a standard C callback but with more features.</p>
 
-<p>This article proposes an inter-thread communication mechanism utilizing asynchronous multicast callbacks. The attached source code implements all features above, as I&#39;ll demonstrate.</p>
-
 # Callbacks Background
 
 <p>The idea of a function callback is very useful. In callback terms, a publisher defines the callback signature and allows anonymous registration of a callback function pointer. A subscriber creates a function implementation conforming to the publisher&#39;s callback signature and registers a callback function pointer with the publisher at runtime. The publisher code knows nothing about the subscriber code &ndash; the registration and the callback invocation is anonymous.</p>
@@ -90,8 +68,6 @@ Originally published on CodeProject at: <a href="https://www.codeproject.com/Art
 <p>One solution for making a callback function thread-safe is to post a message to the subscriber&#39;s OS queue during the publisher&#39;s callback. The subscriber&#39;s thread later dequeues the message and calls an appropriate function. Since the callback implementation only posts a message, the callback, even if done asynchronously, is thread-safe. In this case, the asynchrony of a message queue provides the thread safety in lieu of software locks.</p>
 
 # Using the Code
-
-<p>I&#39;ll first present how to use the code, and then get into the implementation details.</p>
 
 <p>A publisher uses the <code>CB_DECLARE </code>macro to expose a callback interface to potential subscribers, typically within a header file. The first argument is the callback name. The second argument is the callback function argument type. In the example below, <code>int*</code> is the callback function argument.</p>
 
@@ -448,10 +424,10 @@ void WorkerThread::Process()
 <p>The code is an easy port to any platform. There are only two OS services required: threads and a software lock. The code is separated into four directories.</p>
 
 <ol>
-	<li><strong>Callback </strong>- core library implementation files</li>
+	<li><strong>Callback </strong>&ndash; core library implementation files</li>
 	<li><strong>Port </strong>&ndash; Windows-specific files (thread/lock)</li>
 	<li><strong>Examples </strong>&ndash; sample code showing usage</li>
-	<li><strong>VS2017 </strong>&ndash; Visual Studio 2017 project files</li>
+	<li><strong>Allocator </strong>&ndash; optional fixed-block memory allocator</li>
 </ol>
 
 <p>Porting to another platform requires implementing a dispatch function that accepts a <code>const CB_CallbackMsg* </code>for each thread. The functions below show an example.</p>
@@ -467,7 +443,7 @@ extern &quot;C&quot; BOOL DispatchCallbackThread1(const CB_CallbackMsg* cbMsg)
 void WorkerThread::DispatchCallback(const CB_CallbackMsg* msg)
 {
     ASSERT_TRUE(m_thread);
-
+A
     // Create a new ThreadMsg
     ThreadMsg* threadMsg = new ThreadMsg(MSG_DISPATCH_DELEGATE, msg);
 
@@ -499,70 +475,17 @@ case MSG_DISPATCH_DELEGATE:
 
 <p>Software locks are handled by the <code>LockGuard </code>module. This file can be updated with locks of your choice, or you can use a different mechanism. Locks are only used in a few places. Define <code>USE_LOCKS</code> within <strong>callback.c</strong> to use <code>LockGuard </code>module locks.&nbsp;</p>
 
-# Which Callback Implementation?
+# Asynchronous Library Comparison
 
-<p>I&rsquo;ve documented three different asynchronous multicast callback implementations here on CodeProject. Each version has its own unique features and advantages. The sections below highlight the main differences between each solution. See the <strong>References </strong>section below for links to each article.&nbsp;</p>
+<p>Asynchronous function invocation allows for easy movement of data between threads. The table below summarizes the various asynchronous function invocation implementations available in C and C++.</p>
 
-## Asynchronous Multicast Callbacks in C
-
-<ul>
-	<li>Implemented in C</li>
-	<li>Callback function free or static member only</li>
-	<li>One callback argument supported</li>
-	<li>Callback argument must be a pointer type</li>
-	<li>Callback argument data copied with <code>memcpy</code></li>
-	<li>Type-safety provided by macros</li>
-	<li>Static array holds registered subscriber callbacks</li>
-	<li>Number of registered subscribers fixed at compile time</li>
-	<li>Fixed block memory allocator in C</li>
-	<li>Compact implementation</li>
-</ul>
-
-## Asynchronous Multicast Callbacks with Inter-Thread Messaging
-
-<ul>
-	<li>Implemented in C++</li>
-	<li>Callback function free or static member only</li>
-	<li>One callback argument supported</li>
-	<li>Callback argument must be a pointer type</li>
-	<li>Callback argument data copied with copy constructor</li>
-	<li>Type-safety provided by templates</li>
-	<li>Minimal use of templates</li>
-	<li>Dynamic list of registered subscriber&nbsp;callbacks</li>
-	<li>Number of registered subscribers expands at runtime</li>
-	<li>Fixed block memory allocator in C++</li>
-	<li>Compact implementation</li>
-</ul>
-
-## Asynchronous Multicast Delegates in C++
-
-<ul>
-	<li>Implemented in C++</li>
-	<li>C++ delegate paradigm</li>
-	<li>Any callback function type (member, static, free)</li>
-	<li>Multiple callback arguments supported (up to 5)</li>
-	<li>Callback argument any type (value, reference, pointer, pointer to pointer)</li>
-	<li>Callback argument&nbsp;data copied with copy constructor</li>
-	<li>Type-safety provided by templates</li>
-	<li>Heavy use of templates</li>
-	<li>Dynamic list of registered subscriber&nbsp;callbacks</li>
-	<li>Number of registered subscribers&nbsp;expands at runtime</li>
-	<li>Fixed block memory allocator in C++</li>
-	<li>Larger implementation&nbsp;</li>
-</ul>
-
+| Repository                                                                                            | Language | Key Delegate Features                                                                                                                                                                                                               | Notes                                                                                                                                                                                                      |
+|-------------------------------------------------------------------------------------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| <a href="https://github.com/endurodave/DelegateMQ">DelegateMQ</a> | C++17    | * Function-like template syntax<br> * Any delegate target function type (member, static, free, lambda)<br>  * N target function arguments<br> * N delegate subscribers<br> * Variadic templates<br> * Template metaprogramming      | * Modern C++<br> * Invoke synchronously, asynchronously or remotely<br> * Extensive unit tests<br> |
+| <a href="https://github.com/endurodave/AsyncCallback">AsyncCallback</a>                               | C++      | * Traditional template syntax<br> * Delegate target function type (static, free)<br> * 1 target function argument<br> * N delegate subscribers                                                                                      | * Low lines of source code<br> * Most compact C++ implementation<br> * Any C++ compiler                                                                                                                    |
+| <a href="https://github.com/endurodave/C_AsyncCallback">C_AsyncCallback</a>                           | C        | * Macros provide type-safety<br> * Delegate target function type (static, free)<br> * 1 target function argument<br> * Fixed delegate subscribers (set at compile time)<br> * Optional fixed block allocator                        | * Low lines of source code<br> * Very compact implementation<br> * Any C compiler                                                                                                                          |
 # References
 
 <ul>
-	<li><a href="https://www.codeproject.com/Articles/1272619/A-Fixed-Block-Memory-Allocator-in-C">A Fixed Block Memory Allocator in C</a> - by David Lafreniere</li>
-	<li><a href="https://www.codeproject.com/Articles/1160934/Asynchronous-Multicast-Delegates-in-Cplusplus">Asynchronous Multicast Delegates in C++</a> - by David Lafreniere</li>
-	<li><a href="https://www.codeproject.com/Articles/1092727/Asynchronous-Multicast-Callbacks-with-Inter-Thread">Asynchronous Multicast Callbacks with Inter-Thread Messaging</a> - by David Lafreniere</li>
+	<li><a href="https://github.com/endurodave/C_Allocator">A Fixed Block Memory Allocator in C</a> - by David Lafreniere</li>
 </ul>
-
-# Conclusion
-
-<p>There are many ways to design a publisher/subscriber callback system. This C language version incorporates unique features and eases generating&nbsp;asynchronous callbacks onto a client specified thread of control. The implementation was kept to a minimum to facilitate porting to any system embedded or otherwise.&nbsp;</p>
-
-<p>This callback implementation works on C and C++ projects. However, if you have a strictly C++ project, you could consider using one of the C++ callback implementations listed within the <strong>References </strong>section.&nbsp;</p>
-
-<p>I&#39;ve used this technique on projects with great success. Each module or subsystem may expose one or more outgoing interfaces with <code>CB_DECLARE </code>and <code>CB_DEFINE </code>macros. Any code within the system is able to connect and receive asynchronous callbacks with worrying about cross-threading or the machinery to make it all work. A feature like this eases application design and architecturally standardizes inter-thread communication with a well-understood callback paradigm.</p>
