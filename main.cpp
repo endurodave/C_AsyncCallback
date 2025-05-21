@@ -102,7 +102,7 @@ int main()
     SDNL_SetSystemMode(NORMAL);
 
     // Give time for message processing on worker threads
-    this_thread::sleep_for(1s);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     // Unregister from all callbacks
     CB_Unregister(TestCb, TestCallback1, NULL);
@@ -118,7 +118,7 @@ int main()
     CB_Term();
     ALLOC_Term();
 
-    this_thread::sleep_for(1s);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     return 0;
 }
