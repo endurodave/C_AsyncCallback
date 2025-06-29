@@ -7,11 +7,14 @@
 
 Simplify passing data between threads with this portable C language callback library.
 
+Originally published on CodeProject at <a href="https://www.codeproject.com/Articles/1272894/Asynchronous-Multicast-Callbacks-in-C">Asynchronous Multicast Callbacks in C</a> with a perfect 5.0 feedback rating.
+
 # Table of Contents
 
 - [Asynchronous Multicast Callbacks in C](#asynchronous-multicast-callbacks-in-c)
 - [Table of Contents](#table-of-contents)
-- [Preface](#preface)
+- [Getting Started](#getting-started)
+- [References](#references)
 - [Introduction](#introduction)
 - [Callbacks Background](#callbacks-background)
 - [Using the Code](#using-the-code)
@@ -24,14 +27,21 @@ Simplify passing data between threads with this portable C language callback lib
 - [Heap](#heap)
 - [Porting](#porting)
 - [Asynchronous Library Comparison](#asynchronous-library-comparison)
-- [References](#references)
+- [References](#references-1)
 
+# Getting Started
 
-# Preface
+[CMake](https://cmake.org/) is used to create the project build files on any Windows or Linux platform. 
 
-Originally published on CodeProject at <a href="https://www.codeproject.com/Articles/1272894/Asynchronous-Multicast-Callbacks-in-C">Asynchronous Multicast Callbacks in C</a> with a perfect 5.0 feedback rating.
+1. Clone the repository.
+2. From the repository root, run the following CMake command:   
+   `cmake -B Build .`
+3. Build and run the project within the `Build` directory. 
 
-<p><a href="https://www.cmake.org/">CMake</a>&nbsp;is used to create the build files. CMake is free and open-source software. Windows, Linux and other toolchains are supported. See the <strong>CMakeLists.txt </strong>file for more information.</p>
+# References
+
+* <a href="https://github.com/endurodave/AsyncCallback">AsyncCallback</a> - A C++ asynchronous callback library. 
+* <a href="https://github.com/endurodave/DelegateMQ">DelegateMQ</a> - Invoke any C++ callable function synchronously or  asynchronously using delegates.
 
 # Introduction
 
